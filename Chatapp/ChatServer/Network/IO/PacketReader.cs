@@ -20,7 +20,7 @@ namespace ChatServer.Network.IO
         {
             int length = ReadInt32();
             byte[] bytes = ReadBytes(length);
-            if (ns is null)
+            if (ns is null) //error
             {
                 throw new InvalidOperationException("NetworkStream is null");
             }
