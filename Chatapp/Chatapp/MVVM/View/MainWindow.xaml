@@ -20,10 +20,11 @@
 
         <DockPanel>
             <TextBlock Height="25"
+                       Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
                        DockPanel.Dock="Top"/>
-            <TextBlock Height="25"
+            <Button Height="25"
                           DockPanel.Dock="Top"
-                          Text="Connect"
+                          Content="Connect"
                           Background="Gray"
                           Command="{Binding ConnectToServerCommand}"
                           HorizontalAlignment="Center"

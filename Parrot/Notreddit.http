@@ -1,6 +1,0 @@
-@Notreddit_HostAddress = http://localhost:5068
-
-GET {{Notreddit_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

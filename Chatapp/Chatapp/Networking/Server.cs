@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using ChatClient.Networking.IO;
 
 namespace ChatClient.Networking
 {
@@ -12,16 +13,21 @@ namespace ChatClient.Networking
     {
         TcpClient client;
 
-        public Server(string ip, int port)
+        public Server()
         {
-            client = new TcpClient(ip, port);
+            client = new TcpClient();
         }
 
-        public void ConnectToServer()
+        public void ConnectToServer(string Username)
         {
             if (!client.Connected)
             {   
-                client.Connect("127.0.0.1", 7891);
+                client.Connect("127.0.0.1", 50922);
+                var connectPacket = new PacketBuilder();
+                connectPacket.WriteOpCode(0); 
+                connectPacket.WriteString(Username);
+                client.Client.Send(connectPacket.GetPacket());
+
                 Console.WriteLine("Connected to server");
             }
             else
