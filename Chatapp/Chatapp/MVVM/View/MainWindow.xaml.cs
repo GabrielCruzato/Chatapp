@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using ChatClient.MVVM.ViewModel;
+using System.Windows;
 
 namespace ChatClient
 {
@@ -10,6 +11,7 @@ namespace ChatClient
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new MainViewModel();
         }
     }
 }

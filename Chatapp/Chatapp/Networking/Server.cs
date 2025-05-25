@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using ChatClient.Networking.IO;
+using System;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
-using ChatClient.Networking.IO;
 
 namespace ChatClient.Networking
 {
-
-     public class Server
+    public class Server
     {
         TcpClient client;
+        PacketReader? packetReader;
+
+        public event Action connectedEvent;
+        public event Action<string, string> userConnectedEvent; 
 
         public Server()
         {
@@ -21,19 +21,59 @@ namespace ChatClient.Networking
         public void ConnectToServer(string Username)
         {
             if (!client.Connected)
-            {   
+            {
                 client.Connect("127.0.0.1", 50922);
-                var connectPacket = new PacketBuilder();
-                connectPacket.WriteOpCode(0); 
-                connectPacket.WriteString(Username);
-                client.Client.Send(connectPacket.GetPacket());
+                packetReader = new PacketReader(client.GetStream());
 
-                Console.WriteLine("Connected to server");
+                if (!string.IsNullOrEmpty(Username))
+                {
+                    connectedEvent?.Invoke();
+
+                    var connectPacket = new PacketBuilder();
+                    connectPacket.WriteOpCode(0);
+                    connectPacket.WriteString(Username);
+                    client.Client.Send(connectPacket.GetPacket());
+
+                    Console.WriteLine("Connected to server");
+                }
+
+                ReadPacket();
             }
             else
             {
-                Console.WriteLine("Failed to connect to server");
+                Console.WriteLine("Already connected");
             }
+        }
+
+        private void ReadPacket()
+        {
+            Task.Run(() =>
+            {
+                while (client.Connected)
+                {
+                    try
+                    {
+                        var opcode = packetReader?.ReadByte();
+
+                        switch (opcode)
+                        {
+                            case 1: // usuário conectado
+                                var username = packetReader.ReadMessage();
+                                var uid = packetReader.ReadMessage();
+                                userConnectedEvent?.Invoke(username, uid);
+                                break;
+                            case 2:
+                                Console.WriteLine("Received message");
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Erro no ReadPacket: " + ex.Message);
+                        client.Close();
+                    }
+                }
+            });
         }
     }
 }

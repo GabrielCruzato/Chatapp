@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using ChatServer.Network.IO;
+using System;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChatServer
 {
@@ -11,15 +8,35 @@ namespace ChatServer
     {
         public string? Username { get; set; }
         public Guid UID { get; set; }
-
         public TcpClient ClientSocket { get; set; }
+
+        private PacketReader packetReader;
 
         public Client(TcpClient client)
         {
             ClientSocket = client;
             UID = Guid.NewGuid();
+            packetReader = new PacketReader(ClientSocket.GetStream());
+        }
 
-            Console.WriteLine($"[{DateTime.Now}]: Client has connected with username: {Username}");
+        public void Listen(Action onUserConnected)
+        {
+            try
+            {
+                var opcode = packetReader.ReadByte();
+                if (opcode == 0)
+                {
+                    Username = packetReader.ReadMessage();
+                    Console.WriteLine($"[{DateTime.Now}]: {Username} connected.");
+
+                    onUserConnected.Invoke(); 
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Client error: {ex.Message}");
+            }
         }
     }
 }
+    

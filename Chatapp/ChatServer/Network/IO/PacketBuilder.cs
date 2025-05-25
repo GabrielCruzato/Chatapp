@@ -1,7 +1,6 @@
-﻿using System.IO;
-using System.Text;
+﻿using System.Text;
 
-namespace ChatClient.Networking.IO
+namespace ChatServer.Network.IO
 {
     internal class PacketBuilder
     {
