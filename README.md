@@ -1,4 +1,7 @@
 ChatApp - Aplicação de Chat TCP em WPF (C#)
+
+![image](https://github.com/user-attachments/assets/e43b8324-e478-4486-b625-14b3e0ff0281)
+
 Descrição
 
 ChatApp é um cliente e servidor de chat simples desenvolvido em C# com WPF no cliente e sockets TCP para comunicação em tempo real. O projeto utiliza o padrão MVVM para organização do código no cliente e implementa comunicação via pacotes customizados para troca de mensagens, conexão e desconexão de usuários.
