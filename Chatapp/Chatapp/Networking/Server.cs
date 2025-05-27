@@ -10,8 +10,10 @@ namespace ChatClient.Networking
         TcpClient client;
         PacketReader? packetReader;
 
-        public event Action connectedEvent;
-        public event Action<string, string> userConnectedEvent; 
+        public event Action? connectedEvent;
+        public event Action<string, string>? userConnectedEvent;
+        public event Action<string>? msgReceivedEvent;
+        public event Action? userDisconnectedEvent;
 
         public Server()
         {
@@ -57,13 +59,27 @@ namespace ChatClient.Networking
 
                         switch (opcode)
                         {
-                            case 1: // usuário conectado
-                                var username = packetReader.ReadMessage();
-                                var uid = packetReader.ReadMessage();
-                                userConnectedEvent?.Invoke(username, uid);
+                            case 1: 
+                                var username = packetReader?.ReadMessage();
+                                var uid = packetReader?.ReadMessage();
+                                if (username != null && uid != null)
+                                    userConnectedEvent?.Invoke(username, uid);
                                 break;
-                            case 2:
-                                Console.WriteLine("Received message");
+
+                            case 5: 
+                                var receivedMessage = packetReader?.ReadMessage();
+                                if (receivedMessage != null)
+                                    msgReceivedEvent?.Invoke(receivedMessage);
+                                break;
+
+                            case 10:
+                                var disconnectMessage = packetReader?.ReadMessage();
+                                userDisconnectedEvent?.Invoke();
+                                Console.WriteLine($"User disconnected: {disconnectMessage}");
+                                break;
+
+                            default:
+                                Console.WriteLine("Unknown opcode received: " + opcode);
                                 break;
                         }
                     }
@@ -74,6 +90,21 @@ namespace ChatClient.Networking
                     }
                 }
             });
+        }
+
+        public void SendMessageToServer(string message)
+        {
+            if (client.Connected)
+            {
+                var packet = new PacketBuilder();
+                packet.WriteOpCode(5);
+                packet.WriteString(message);
+                client.Client.Send(packet.GetPacket());
+            }
+            else
+            {
+                Console.WriteLine("Not connected to server");
+            }
         }
     }
 }

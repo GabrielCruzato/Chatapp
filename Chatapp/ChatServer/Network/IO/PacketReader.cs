@@ -3,27 +3,36 @@ using System.Text;
 
 namespace ChatServer.Network.IO
 {
-    internal class PacketReader : BinaryReader
+    public class PacketReader : BinaryReader
     {
-        public PacketReader(Stream input) : base(input)
+        private NetworkStream _stream;
+
+        public PacketReader(NetworkStream stream) : base(stream)
         {
-            if (input is not NetworkStream)
+            _stream = stream;
+        }
+
+        private void ReadExactly(byte[] buffer, int offset, int count)
+        {
+            int readBytes = 0;
+            while (readBytes < count)
             {
-                throw new ArgumentException("Input stream is not a NetworkStream");
+                int currentRead = _stream.Read(buffer, offset + readBytes, count - readBytes);
+                if (currentRead == 0)
+                    throw new IOException("Connection closed while reading.");
+                readBytes += currentRead;
             }
         }
 
         public string ReadMessage()
         {
-            int length = ReadInt32();
-            byte[] bytes = ReadBytes(length);
-            return Encoding.UTF8.GetString(bytes);
-        }
+            var lengthBuffer = new byte[sizeof(int)];
+            ReadExactly(lengthBuffer, 0, lengthBuffer.Length);
+            var length = BitConverter.ToInt32(lengthBuffer, 0);
 
-        public Guid ReadGuid()
-        {
-            byte[] bytes = ReadBytes(16);
-            return new Guid(bytes);
+            var messageBuffer = new byte[length];
+            ReadExactly(messageBuffer, 0, length);
+            return Encoding.UTF8.GetString(messageBuffer);
         }
     }
 }

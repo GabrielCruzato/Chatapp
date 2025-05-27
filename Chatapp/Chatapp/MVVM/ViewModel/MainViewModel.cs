@@ -1,10 +1,12 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using ChatClient.MVVM.Core;
-using ChatClient.Networking;
-using ChatClient.MVVM.Model;
+﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
+using ChatClient.MVVM.Core;
+using ChatClient.MVVM.Model;
+using ChatClient.Networking;
 
 namespace ChatClient.MVVM.ViewModel
 {
@@ -13,12 +15,15 @@ namespace ChatClient.MVVM.ViewModel
         public event PropertyChangedEventHandler? PropertyChanged;
 
         private string username = string.Empty;
+        private string message = string.Empty;
 
         private Server server;
 
         public ObservableCollection<UserModel> Users { get; set; } = new ObservableCollection<UserModel>();
+        public ObservableCollection<string> Messages { get; set; } = new ObservableCollection<string>();
 
         public RelayCommand ConnectToServerCommand { get; set; }
+        public RelayCommand SendMessageCommand { get; set; }
 
         public string Username
         {
@@ -34,6 +39,20 @@ namespace ChatClient.MVVM.ViewModel
             }
         }
 
+        public string Message
+        {
+            get => message;
+            set
+            {
+                if (message != value)
+                {
+                    message = value;
+                    OnPropertyChanged();
+                    SendMessageCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
         public MainViewModel()
         {
             server = new Server();
@@ -42,25 +61,45 @@ namespace ChatClient.MVVM.ViewModel
             {
                 if (Guid.TryParse(uidString, out Guid uid))
                 {
-                    if (!Users.Any(u => u.UID == uid))
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
+                        if (!Users.Any(u => u.UID == uid))
                         {
                             Users.Add(new UserModel { Username = username, UID = uid });
-                            Console.WriteLine($"Adicionado sexo: {username}");
-                        });
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"UID inválido recebido: {uidString}");
+                            Messages.Add($"** {username} entrou no chat **");
+                        }
+                    });
                 }
             };
 
+            server.msgReceivedEvent += (msg) =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Messages.Add(msg);
+                });
+            };
+
+            server.userDisconnectedEvent += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Messages.Add("** Um usuário saiu do chat **");
+                });
+            };
 
             ConnectToServerCommand = new RelayCommand(
                 o => server.ConnectToServer(Username),
                 o => !string.IsNullOrWhiteSpace(Username));
+
+            SendMessageCommand = new RelayCommand(
+                o =>
+                {
+                    server.SendMessageToServer(Message);
+                    Messages.Add($"Você: {Message}");
+                    Message = string.Empty;
+                },
+                o => !string.IsNullOrWhiteSpace(Message));
         }
 
         protected void OnPropertyChanged([CallerMemberName] string? name = null)

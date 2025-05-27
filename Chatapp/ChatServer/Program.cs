@@ -9,29 +9,25 @@ namespace ChatServer
 {
     class Program
     {
-        static List<Client> users = new List<Client>();
+        static readonly List<Client> users = new();
 
-        static void Main(string[] args)
+        static void Main()
         {
-            TcpListener listener = new TcpListener(IPAddress.Any, 50922);
+            TcpListener listener = new(IPAddress.Any, 50922);
             listener.Start();
-
             Console.WriteLine("Server started. Waiting for connections...");
 
             while (true)
             {
-                var tcpClient = listener.AcceptTcpClient();
+                TcpClient tcpClient = listener.AcceptTcpClient();
                 Console.WriteLine("Client connecting...");
-
                 var client = new Client(tcpClient);
 
-                // Agora usando OnUserConnected
-                Task.Run(() =>
+                Task.Run(async () =>
                 {
-                    client.Listen(() => OnUserConnected(client));
+                    await client.ListenAsync(() => OnUserConnected(client));
                 });
             }
-
         }
 
         static void OnUserConnected(Client client)
@@ -40,7 +36,6 @@ namespace ChatServer
             {
                 users.Add(client);
             }
-
             BroadcastConnection(client);
         }
 
@@ -50,20 +45,47 @@ namespace ChatServer
             {
                 if (user.UID != newUser.UID)
                 {
-                    var packetToOldUsers = new PacketBuilder();
-                    packetToOldUsers.WriteOpCode(1);
-                    packetToOldUsers.WriteString(newUser.Username);
-                    packetToOldUsers.WriteString(newUser.UID.ToString());
-                    user.ClientSocket.Client.Send(packetToOldUsers.GetPacket());
+                    var packet = new PacketBuilder();
+                    packet.WriteOpCode(1);
+                    packet.WriteString(newUser.Username!);
+                    packet.WriteString(newUser.UID.ToString());
+                    user.ClientSocket.Client.Send(packet.GetPacket());
                 }
 
-                var packetToNewUser = new PacketBuilder();
-                packetToNewUser.WriteOpCode(1);
-                packetToNewUser.WriteString(user.Username);
-                packetToNewUser.WriteString(user.UID.ToString());
-                newUser.ClientSocket.Client.Send(packetToNewUser.GetPacket());
+                var packetToNew = new PacketBuilder();
+                packetToNew.WriteOpCode(1);
+                packetToNew.WriteString(user.Username!);
+                packetToNew.WriteString(user.UID.ToString());
+                newUser.ClientSocket.Client.Send(packetToNew.GetPacket());
             }
         }
-    
+
+        public static void BroadcastMessage(string message, Guid senderUid)
+        {
+            foreach (var user in users)
+            {
+                if (user.UID != senderUid)
+                {
+                    var packet = new PacketBuilder();
+                    packet.WriteOpCode(5);
+                    packet.WriteString(message);
+                    user.ClientSocket.Client.Send(packet.GetPacket());
+                }
+            }
+        }
+
+        public static void BroadcastDisconnectMessage(string message, Guid senderUid)
+        {
+            foreach (var user in users)
+            {
+                if (user.UID != senderUid)
+                {
+                    var packet = new PacketBuilder();
+                    packet.WriteOpCode(2);
+                    packet.WriteString(message);
+                    user.ClientSocket.Client.Send(packet.GetPacket());
+                }
+            }
+        }
     }
 }

@@ -2,33 +2,29 @@
 
 namespace ChatServer.Network.IO
 {
-    internal class PacketBuilder
+    public class PacketBuilder
     {
         MemoryStream ms;
-
         public PacketBuilder()
         {
             ms = new MemoryStream();
         }
 
-        public void WriteOpCode(byte opCode)
+        public void WriteOpCode(byte opcode)
         {
-            ms.WriteByte(opCode);
+            ms.WriteByte(opcode);
         }
 
-        public void WriteString(string str)
+        public void WriteString(string msg)
         {
-            var msgLength = Encoding.UTF8.GetByteCount(str);
+            var msgLength = Encoding.UTF8.GetByteCount(msg);
             ms.Write(BitConverter.GetBytes(msgLength), 0, sizeof(int));
-            ms.Write(Encoding.UTF8.GetBytes(str), 0, msgLength);
+            ms.Write(Encoding.UTF8.GetBytes(msg), 0, msgLength);
         }
 
         public byte[] GetPacket()
         {
-            var packet = ms.ToArray();
-            ms.Dispose();
-            ms = new MemoryStream();
-            return packet;
+            return ms.ToArray();
         }
     }
 }
